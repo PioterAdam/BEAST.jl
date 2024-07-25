@@ -54,10 +54,6 @@ export TimeBasisDeltaShifted
 export ntrace
 export strace
 export ttrace
-export SingleLayer
-export DoubleLayer
-export DoubleLayerTransposed
-export HyperSingular
 export HH3DSingleLayerTDBIO
 export HH3DDoubleLayerTDBIO
 export ∂n, grad
@@ -239,7 +235,9 @@ include("maxwell/maxwell.jl")
 include("maxwell/sourcefield.jl")
 
 # Support for the Helmholtz equation
-include("helmholtz2d/helmholtzop.jl")
+include("helmholtz2d/hh2dexc.jl")
+include("helmholtz2d/hh2dops.jl")
+include("helmholtz2d/helmholtz2d.jl")
 
 include("helmholtz3d/hh3dexc.jl")
 include("helmholtz3d/hh3dops.jl")
