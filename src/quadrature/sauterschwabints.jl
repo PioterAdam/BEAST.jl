@@ -77,6 +77,7 @@ function _integrands_gen(::Type{U}, ::Type{V}) where {U<:SVector{N}, V<:SVector{
     end
     return ex
 end
+
 @generated function _integrands(f, a::SVector{N}, b::SVector{M}) where {M,N}
     ex = _integrands_gen(a,b)
     # println(ex)
@@ -105,16 +106,8 @@ function (igd::Integrand)(x,y,f,g)
 
     op = igd.operator
     kervals = kernelvals(op, x, y)
-    _integrands_leg(op, kervals, f, x, g, y)
+    return _integrands_leg(op, kervals, f, x, g, y)
 
-end
-
-# TODO: Remove this when the next version of CSM is relased!
-function CompScienceMeshes.permute_vertices(
-    ch::CompScienceMeshes.RefQuadrilateral, I)
-
-    V = vertices(ch)
-    return Quadrilateral(V[I[1]], V[I[2]], V[I[3]], V[I[4]])
 end
 
 struct PulledBackIntegrand{I,C}
@@ -159,103 +152,138 @@ function momintegrals!(op::Operator,
     nothing
 end
 
+struct Integrand1D{Op,LSt,LSb,Elt,Elb}
+    operator::Op
+    local_test_space::LSt
+    local_trial_space::LSb
+    test_chart::Elt
+    trial_chart::Elb
+end
 
-# function momintegrals_test_refines_trial!(out, op,
-#     test_functions, test_cell, test_chart,
-#     trial_functions, trial_cell, trial_chart,
-#     quadrule, quadstrat)
+function (igd::Integrand1D)(x,y,f,g)
 
-#     # test_local_space = refspace(test_functions)
-#     # trial_local_space = refspace(trial_functions)
+    op = igd.operator
 
-#     momintegrals!(out, op,
-#         test_functions, test_cell, test_chart,
-#         trial_functions, trial_cell, trial_chart, quadrule)
-# end
+    kervals = kernelvals(op, x, y)
 
-# # const MWOperator3D = Union{MWSingleLayer3D, MWDoubleLayer3D}
-# function momintegrals_test_refines_trial!(out, op,
-#     test_functions, test_cell, test_chart,
-#     trial_functions, trial_cell, trial_chart,
-#     qr::SauterSchwabStrategy, quadstrat)
+    wynik=_integrands_leg(op, kervals, f, x, g, y)
+    return wynik
+end
 
-#     test_local_space = refspace(test_functions)
-#     trial_local_space = refspace(trial_functions)
+function (igd::Integrand1D)(u,v)
 
-#     test_mesh = geometry(test_functions)
-#     # trial_mesh = geometry(trial_functions)
+    x = neighborhood(igd.test_chart,u)
+    y = neighborhood(igd.trial_chart,v)
 
-#     parent_mesh = CompScienceMeshes.parent(test_mesh)
-#     trial_charts = [chart(test_mesh, p) for p in CompScienceMeshes.children(parent_mesh, trial_cell)]
+    f = igd.local_test_space(x)
+    g = igd.local_trial_space(y)
 
-#     qd = quaddata(op, test_local_space, trial_local_space,
-#         [test_chart], trial_charts, quadstrat)
+    return jacobian(x) * jacobian(y) * igd(x,y,f,g)
+end
 
-#     for (q,chart) in enumerate(trial_charts)
-#         qr = quadrule(op, test_local_space, trial_local_space,
-#             1, test_chart, q ,chart, qd, quadstrat)
-#         # @show qr
+struct PulledBackIntegrand1D{I,C}
+    igd::I
+    chart1::C
+    chart2::C
+end
 
-#         Q = restrict(trial_local_space, trial_chart, chart)
-#         zlocal = zero(out)
+function (f::PulledBackIntegrand1D)(u,v)
 
-#         momintegrals!(zlocal, op,
-#             test_functions, test_cell, test_chart,
-#             trial_functions, nothing, chart, qr)
+    return f.igd(u, v)
+end
 
-#         for j in 1:numfunctions(trial_local_space)
-#             for i in 1:numfunctions(test_local_space)
-#                 for k in 1:size(Q, 2)
-#                     out[i,j] += zlocal[i,k] * Q[j,k]
-# end end end end end
+function reference_vertices(::Type{CompScienceMeshes.ReferenceSimplex{1, T, 2}}) where T
+    return (SVector{2,T}(0,0), SVector{2,T}(1,0))
+end
+
+#=
+function pulledback_integrand1D(igd,
+    I, chart1,
+    J, chart2)
+
+    dom1 = domain(chart1)
+    dom2 = domain(chart2)
+
+    V1 = reference_vertices(typeof(dom1))
+    V2 = reference_vertices(typeof(dom2))
+
+    ichart1 = simplex(V1[I[1]], V1[I[2]])
+    ichart2 = simplex(V2[J[1]], V2[J[2]])
+
+    PulledBackIntegrand1D(igd, ichart1, ichart2)
+end
+=#
+
+function pulledback_integrand1D(igd,
+    chart1,
+    chart2)
+    PulledBackIntegrand1D(igd, chart1, chart2)
+end
+
+function momintegrals!(op::Operator,
+    test_local_space, trial_local_space,
+    test_chart, trial_chart,
+    out, rule::BEAST.SauterSchwabQuadrature1d.CommonEdge)
 
 
+    igd = Integrand1D(op, test_local_space, trial_local_space, test_chart, trial_chart)
 
-# function momintegrals_trial_refines_test!(out, op,
-#     test_functions, test_cell, test_chart,
-#     trial_functions, trial_cell, trial_chart,
-#     quadrule, quadstrat)
-
-#     test_local_space = refspace(test_functions)
-#     trial_local_space = refspace(trial_functions)
-
-#     momintegrals!(out, op,
-#         test_functions, test_cell, test_chart,
-#         trial_functions, trial_cell, trial_chart, quadrule)
-# end
+    G = BEAST.SauterSchwabQuadrature1d.sauterschwab_parameterized1d(igd, rule)
+    out[1:numfunctions(test_local_space),1:numfunctions(trial_local_space)] .+= G
+    nothing
+end
 
 
-# function momintegrals_trial_refines_test!(out, op,
-#     test_functions, test_cell, test_chart,
-#     trial_functions, trial_cell, trial_chart,
-#     qr::SauterSchwabStrategy, quadstrat)
+"""
+it is the test for correctly order of vertices, which results in anticlock way r1->r3->r2->r1
+this means that for u,v = 0 r1, r3 and for u,v=1 the expected common node r2 is present
+if this condition is not met, a reordering function must be implemented
+"""
 
-#     test_local_space = refspace(test_functions)
-#     trial_local_space = refspace(trial_functions)
+function reverse_chart(chart::CompScienceMeshes.Simplex{2,1,1,2,T}) where T
+    new_verts = SVector{2,SVector{2,T}}(chart.vertices[2], chart.vertices[1])
 
-#     test_mesh = geometry(test_functions)
-#     trial_mesh = geometry(trial_functions)
+    new_tangent = -chart.tangents[1]
 
-#     parent_mesh = CompScienceMeshes.parent(trial_mesh)
-#     test_charts = [chart(trial_mesh, p) for p in CompScienceMeshes.children(parent_mesh, test_cell)] 
+    # TODO: double check normal should not flip
+    new_normal = chart.normals[1]
 
-#     qd = quaddata(op, test_local_space, trial_local_space,
-#         test_charts, [trial_chart], quadstrat)
+    new_vol = chart.volume
 
-#     for (p,chart) in enumerate(test_charts)
-#         qr = quadrule(op, test_local_space, trial_local_space,
-#             p, chart, 1, trial_chart, qd, quadstrat)
+    return CompScienceMeshes.Simplex{2,1,1,2,T}(
+        new_verts,
+        SVector{1,SVector{2,T}}(new_tangent),
+        SVector{1,SVector{2,T}}(new_normal),
+        new_vol
+    )
+end
 
-#         Q = restrict(test_local_space, test_chart, chart)
-#         zlocal = zero(out)
-#         momintegrals!(zlocal, op,
-#             test_functions, nothing, chart,
-#             trial_functions, trial_cell, trial_chart, qr)
 
-#         for j in 1:numfunctions(trial_local_space)
-#             for i in 1:numfunctions(test_local_space)
-#                 for k in 1:size(Q, 2)
-#                     out[i,j] += Q[i,k] * zlocal[k,j]
-#         end end end
-#     end
-# end
+function momintegrals!(op::Operator,
+    test_local_space, trial_local_space,
+    test_chart, trial_chart,
+    out, rule::BEAST.SauterSchwabQuadrature1d.CommonVertex)
+
+    igd = Integrand1D(op, test_local_space, trial_local_space, test_chart, trial_chart)
+
+    u = 0.0
+    v = 1.0
+
+    if !(cartesian(igd.test_chart, u) ≈ cartesian(igd.trial_chart, v))
+
+        itest_chart = reverse_chart(igd.test_chart)
+        itrial_chart = reverse_chart(igd.trial_chart)
+
+        igdp = pulledback_integrand1D(igd, itest_chart, itrial_chart)
+
+        G = BEAST.SauterSchwabQuadrature1d.sauterschwab_parameterized1d(igdp, rule)
+        out[1:numfunctions(test_local_space),1:numfunctions(trial_local_space)] .+= G
+
+    else
+
+        G = BEAST.SauterSchwabQuadrature1d.sauterschwab_parameterized1d(igd, rule)
+        out[1:numfunctions(test_local_space),1:numfunctions(trial_local_space)] .+= G
+    end
+    nothing
+end
+

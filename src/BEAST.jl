@@ -203,6 +203,7 @@ include("interpolation.jl")
 include("quadrature/rules/momintegrals.jl")
 include("quadrature/doublenumints.jl")
 include("quadrature/singularityextractionints.jl")
+include("quadrature/SauterSchwabQuadrature1d.jl")
 include("quadrature/sauterschwabints.jl")
 include("quadrature/nonconformingoverlapqrule.jl")
 include("quadrature/nonconformingtouchqrule.jl")
@@ -235,10 +236,6 @@ include("maxwell/maxwell.jl")
 include("maxwell/sourcefield.jl")
 
 # Support for the Helmholtz equation
-include("helmholtz2d/hh2dexc.jl")
-include("helmholtz2d/hh2dops.jl")
-include("helmholtz2d/helmholtz2d.jl")
-
 include("helmholtz3d/hh3dexc.jl")
 include("helmholtz3d/hh3dops.jl")
 include("helmholtz3d/nitsche.jl")
@@ -247,6 +244,10 @@ include("helmholtz3d/hh3dfar.jl")
 include("helmholtz3d/hh3d_sauterschwabqr.jl")
 include("helmholtz3d/helmholtz3d.jl")
 include("helmholtz3d/wiltonints.jl")
+
+include("helmholtz2d/hh2dexc.jl")
+include("helmholtz2d/hh2dops.jl")
+include("helmholtz2d/helmholtz2d.jl")
 
 #suport for Volume Integral equation
 include("volumeintegral/vie.jl")
