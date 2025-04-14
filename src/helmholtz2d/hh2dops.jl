@@ -92,13 +92,7 @@ function cellcellinteractions!(biop::HelmholtzOperator2D, tshs, bshs, tcell, bce
 
 end
 
-function testfunc1()
-    print("test function!")
-end
-
-# defaultquadstrat(op::HelmholtzOperator2D, tfs, bfs) = DoubleNumWiltonSauterQStrat(4,3,4,3,4,4,4,4)
-defaultquadstrat(op::HelmholtzOperator2D, tfs, bfs) = DoubleNumQStrat(4,3)
-
+defaultquadstrat(op::HelmholtzOperator2D, tfs, bfs) = DoubleNumSauterQstrat(3,3,0,4,10,10)
 
 function quaddata(op::HelmholtzOperator2D, g::LagrangeRefSpace, f::LagrangeRefSpace, tels, bels,
         qs::DoubleNumWiltonSauterQStrat)
@@ -119,4 +113,43 @@ function quadrule(op::HelmholtzOperator2D, g::LagrangeRefSpace, f::LagrangeRefSp
 
 end
 
+function quaddata(op::HelmholtzOperator2D,
+    test_local_space::RefSpace, trial_local_space::RefSpace,
+    test_charts, trial_charts, qs::DoubleNumSauterQstrat)
 
+    T = coordtype(test_charts[1])
+
+    tqd = quadpoints(test_local_space,  test_charts,  (qs.outer_rule,))
+    bqd = quadpoints(trial_local_space, trial_charts, (qs.inner_rule,))
+
+    leg = (
+      convert.(NTuple{2,T},_legendre(qs.sauter_schwab_common_vert,0,1)),
+      convert.(NTuple{2,T},_legendre(qs.sauter_schwab_common_edge,0,1)),
+      convert.(NTuple{2,T},_legendre(qs.sauter_schwab_common_face,0,1)),
+    )
+
+    mrw = (
+     convert.(NTuple{2,T},BEAST.SauterSchwabQuadrature1d._JoshuasRules(qs.sauter_schwab_common_vert,0,1)),
+     convert.(NTuple{2,T},BEAST.SauterSchwabQuadrature1d._JoshuasRules(qs.sauter_schwab_common_edge,0,1)),
+     convert.(NTuple{2,T},BEAST.SauterSchwabQuadrature1d._JoshuasRules(qs.sauter_schwab_common_face,0,1)),
+    )
+
+    return (tpoints=tqd, bpoints=bqd, gausslegendre=leg, marokhlinwandura=mrw)
+end
+
+function quadrule(op::IntegralOperator, g::RefSpace, f::RefSpace,
+    i, τ::CompScienceMeshes.Simplex{<:Any, 1},
+    j, σ::CompScienceMeshes.Simplex{<:Any, 1},
+    qd, qs::DoubleNumSauterQstrat)
+
+    hits = _numhits(τ, σ)
+    @assert hits <= 2
+
+    hits == 2 && return BEAST.SauterSchwabQuadrature1d.CommonEdge(qd.marokhlinwandura[2])
+    hits == 1 && return BEAST.SauterSchwabQuadrature1d.CommonVertex(qd.marokhlinwandura[1])
+
+    return DoubleQuadRule(
+        qd.tpoints[1,i],
+        qd.bpoints[1,j],
+    )
+end
