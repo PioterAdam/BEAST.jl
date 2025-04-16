@@ -244,7 +244,10 @@ function momintegrals!(op::Operator,
     igd = Integrand1D(op, test_local_space, trial_local_space, test_chart, trial_chart)
 
     G = BEAST.SauterSchwabQuadrature1d.sauterschwab_parameterized1d(igd, rule)
-    out[1:numfunctions(test_local_space),1:numfunctions(trial_local_space)] .+= G
+    out[
+        1:numfunctions(test_local_space, domain(test_chart)),
+        1:numfunctions(trial_local_space, domain(trial_chart))
+    ] .+= G
     nothing
 end
 
@@ -292,12 +295,18 @@ function momintegrals!(op::Operator,
         igdp = pulledback_integrand1D(igd, itest_chart, itrial_chart)
 
         G = BEAST.SauterSchwabQuadrature1d.sauterschwab_parameterized1d(igdp, rule)
-        out[1:numfunctions(test_local_space),1:numfunctions(trial_local_space)] .+= G
+        out[
+            1:numfunctions(test_local_space, domain(test_chart)),
+            1:numfunctions(trial_local_space, domain(trial_chart))
+        ] .+= G
 
     else
 
         G = BEAST.SauterSchwabQuadrature1d.sauterschwab_parameterized1d(igd, rule)
-        out[1:numfunctions(test_local_space),1:numfunctions(trial_local_space)] .+= G
+        out[
+            1:numfunctions(test_local_space, domain(test_chart)),
+            1:numfunctions(trial_local_space, domain(trial_chart))
+        ] .+= G
     end
     nothing
 end
