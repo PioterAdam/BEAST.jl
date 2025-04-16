@@ -28,7 +28,10 @@ Common face case.
 
 
 #=
-# Dutch version
+# Dutch version: for comparizon purpose
+# MSc thesis:"2D electromagnetic field MoM calculations
+# using well conditioned higher order polynimials" by Denturck,
+# eq. 3.38, p.26
 function (::CommonEdge)(f, u, v)
 
     return (1 - v) *
@@ -40,6 +43,7 @@ end
 =#
 
 # our version
+# based on Boundary Element Methods by Sauter and Schwab, example, 5.2.3, p.308
 function (::CommonEdge)(f, w, z)
 
     return (1-z) *
@@ -60,7 +64,10 @@ Common vertex case.
 """
 
 #=
-#Dutch version
+# Belgian version: for comparizon purpose
+# MSc thesis:"2D electromagnetic field MoM calculations
+# using well conditioned higher order polynimials" by Denturck,
+# eq. 3.39, p.26
 function (::CommonVertex)(f, u, v)
 
     return v * (
@@ -72,6 +79,7 @@ end
 
 
 # our version
+# based on Boundary Element Methods by Sauter and Schwab, example, 5.2.3, p.308
 function (::CommonVertex)(f, w, z)
     return z * (
         f((1 - w)*z, 1 - w*z) +
@@ -81,6 +89,7 @@ end
 
 
 #=
+# For testing: without SS strategy
 function (::CommonVertex)(f, ξ, η)
 
     return (f(ξ, η))
