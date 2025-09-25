@@ -45,9 +45,9 @@ end
 ##
 #hs = [0.8, 0.4, 0.2, 0.1, 0.05, 0.025]
 
-hs = [2.0, 1.0, 0.5]# 0.25, 0.125, 0.0625, 0.03125, 0.01562]
+hs = [2.0, 1.0, 0.5, 0.25, 0.125, 0.0625, 0.03125, 0.01562]
 
-orders = [1, 2]
+orders = [1, 2, 3, 4, 5]
 
 accs = Dict()
 
@@ -63,10 +63,15 @@ for order in orders
         square = translate(meshsquare(2*r, h*r, 2), r*SVector(-0.5, -0.5))
 
         #k = 0.031415926535897934
-
-        #X0 = BEAST.lagrangecx(square, order=order)
-        #X0 = BEAST.lagrangecxd0(square) # For comparison to zeroth order (discont.)
-        X0 = BEAST.lagrangec0(square, order=order, dirichlet=true)
+        println(order)
+        #if order == 0
+            #X0 = BEAST.lagrangecxd0(square) # For comparison to zeroth order (discont.)
+        #    X0 = BEAST.lagrangec0d1(square, dirichlet=true) #For comparison to linear order (cont.)
+        #else
+            #X0 = BEAST.lagrangecx(square, order=order)
+            X0 = BEAST.lagrangec0(square, order=order, dirichlet=true)
+        #end
+        # X0 = BEAST.lagrangec0(square, order=order, dirichlet=true)
         #X0 = BEAST.lagrangec0d1(square, dirichlet=true) For comparison to linear order (cont.)
         @show numfunctions(X0)
         #X1 = lagrangec0d1(square)
@@ -117,6 +122,16 @@ plt = Plots.plot(
     ylabel="Relative error",
     legend=:bottomright,
     title="Manufactured solution for square (Helmholtz2D)",  linewidth=3)
+
+    #Plots.plot!(plt, hs, accs[0], label="Order 0", markershape=:auto)
+    Plots.plot!(plt, hs, accs[1], label="Order 1", markershape=:auto)
+    Plots.plot!(plt, hs, accs[2], label="Order 2", markershape=:auto)
+    Plots.plot!(plt, hs, accs[3], label="Order 3", markershape=:auto)
+    Plots.plot!(plt, hs, accs[4], label="Order 4", markershape=:auto)
+    Plots.plot!(plt, hs, accs[5], label="Order 5", markershape=:auto)
+
+    savefig("clagrangecx_square_relative_error.pdf")
+
 
 for i in orders
     Plots.plot!(plt, hs, accs[i], label="Order $i", markershape=:auto)

@@ -218,6 +218,15 @@ include("quadrature/doublenumints.jl")
 include("quadrature/singularityextractionints.jl")
 include("quadrature/SauterSchwabQuadrature1D.jl")
 include("quadrature/sauterschwabints.jl")
+
+#include("quadrature/rules/sauterschwab_edgechart_1d.jl")
+
+if isdefined(CompScienceMeshes, :EdgeChart)
+    include("quadrature/rules/sauterschwab_edgechart_1d.jl")
+else
+    @info "BEAST: EdgeChart not found in CompScienceMeshes — skipping legacy EdgeChart 1D rules."
+end
+
 include("quadrature/nonconformingoverlapqrule.jl")
 include("quadrature/nonconformingtouchqrule.jl")
 include("quadrature/rules/testrefinestrialqrule.jl")
