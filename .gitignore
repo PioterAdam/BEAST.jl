@@ -14,3 +14,7 @@ profile/
 /test/Manifest.toml
 /docs/Manifest.toml
 /data/
+# local examples (not tracked yet)
+examples/
+# legacy rule kept local
+src/quadrature/rules/sauterschwab_edgechart_1d.jl
