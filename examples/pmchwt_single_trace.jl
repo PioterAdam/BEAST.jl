@@ -106,9 +106,8 @@ end
     Nd = BEAST.nedelec(Σ, Edges)
     RT = [n×BEAST.nedelec(∂Ωᵢ, e) for (∂Ωᵢ,e) in zip(∂Ω, edges)]
 
-    U = ∏(rt × rt for rt in RT)
-    V = ∏(Nd × Nd)
-    # V = BEAST.DirectProductSpace([Nd × Nd])
+    U = BEAST.DirectProductSpace([rt × rt for rt in RT])
+    V = BEAST.DirectProductSpace([Nd × Nd])
 
     return (;U, V)
 end
